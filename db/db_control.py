@@ -1,11 +1,9 @@
+from pymilvus import (Collection, CollectionSchema, DataType, FieldSchema,
+                      connections, utility)
+
 import settings
-from text_transformer import Transformer
-from pymilvus import (
-    connections,
-    FieldSchema, CollectionSchema, DataType,
-    Collection,
-    utility
-)
+from data_preprocessing.text_transformer import Transformer
+import pandas as pd
 
 
 def create_connection(alias='default'):
@@ -13,15 +11,16 @@ def create_connection(alias='default'):
     connections.connect(alias=alias, host=settings._HOST, port=settings._PORT)
 
 
-def create_collection(name, id_field, vector_field, _data=None, description_field="collection description"):
+def create_collection():
     """ Созданть коллекцию. """
-    field1 = FieldSchema(name=id_field, dtype=DataType.INT64,
+    field1 = FieldSchema(name=settings._ID_FIELD_NAME, dtype=DataType.INT64,
                          description="int64", is_primary=True)
-    field2 = FieldSchema(name=vector_field, dtype=DataType.FLOAT_VECTOR, description="description_vector", dim=settings._DIM,
+    field2 = FieldSchema(name=settings._VECTOR_FIELD_NAME, dtype=DataType.FLOAT_VECTOR,
+                         description="description_vector", dim=settings._DIM,
                          is_primary=False)
     schema = CollectionSchema(
-        fields=[field1, field2], description=description_field)
-    collection = Collection(name=name, data=_data, schema=schema)
+        fields=[field1, field2], description=settings._COLLECTION_DESCRIPTION)
+    collection = Collection(name=settings._COLLECTION_NAME, schema=schema)
     return collection
 
 
@@ -45,7 +44,6 @@ def list_collections():
 
 def prepare_data(data):
     """ Подготовить данные к загрузке в коллекцию. """
-    import pandas
     _id = []
     vector = []
     for i in range(len(data)):
@@ -67,13 +65,13 @@ def get_entity_num(collection):
     return noe
 
 
-def create_index(collection, filed_name):
+def create_index(collection):
     """ Создать индекс. """
     index_param = {
         "index_type": settings._INDEX_TYPE,
         "params": {"nlist": settings._NLIST},
         "metric_type": settings._METRIC_TYPE}
-    collection.create_index(filed_name, index_param)
+    collection.create_index(settings._VECTOR_FIELD_NAME, index_param)
     print("\nCreated index:\n{}".format(collection.index().params))
 
 
@@ -114,3 +112,28 @@ def search(collection, users_text):
         vectors_right=vectors_right,
         params=params)
     return results
+
+
+def get_data():
+    """ 
+        Читает вектора с .csv файла. Если его нет - скачает.  
+    """
+    try:
+        data = pd.read_csv('description_vectors.csv')
+    except Exception:
+        data = pd.read_csv(
+            'https://drive.google.com/uc?export=download&id=1DN8vu6VFsevUnu5NmQ6nujmrz6y84erR')
+    return data
+
+
+def prepare_collection():
+    """Подготовка коллекции к использованию. Если её нет - создаем и заполняем, если есть - забираем"""
+    create_connection()
+    if not has_collection(settings._COLLECTION_NAME):
+        collection = create_collection()
+        insert(collection, prepare_data(get_data()))
+    else:
+        collection = Collection(settings._COLLECTION_NAME)
+        if get_entity_num(collection) == 0:
+            insert(collection, prepare_data(get_data()))
+    return collection

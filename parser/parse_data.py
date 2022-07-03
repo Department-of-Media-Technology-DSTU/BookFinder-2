@@ -112,12 +112,6 @@ def main():
 
     process.crawl(BookSpider)
     process.start()
-    import pandas
-    return pandas.read_csv('cg_cat.csv')
-
-
-def get_parsed_data():
-    return main()
 
 
 if __name__ == '__main__':

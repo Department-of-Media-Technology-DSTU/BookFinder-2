@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
+
 import pandas as pd
+_RAW_BOOK_DATA = [
+    'cg_cat.csv', 'https://drive.google.com/uc?export=download&id=1eVWSItBmkAwYZkIDrIJPo01zrsc1lPk_']
 
 
 def main():
     try:
-        data = pd.read_csv("cg_cat.csv")
+        data = pd.read_csv(_RAW_BOOK_DATA[0])
     except Exception:
-        import parse_data
-        data = parse_data.get_parsed_data()
+        data = pd.read_csv(_RAW_BOOK_DATA[1])
     data_cleared = data.drop_duplicates(subset=['name'])
 
     mask = (data_cleared['description'].str.len() > 200)
