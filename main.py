@@ -17,7 +17,11 @@ class MilvusSearcher:
         results = db.search(self.collection, sentence)
         db.release_collection(self.collection)
         res = sorted(range(len(results)), key=lambda sub: results[sub])[:n]
-        book_data = pd.read_csv('book_data.csv')
+        try:
+            book_data = pd.read_csv('book_data.csv')
+        except Exception:
+            book_data = pd.read_csv(
+                'https://drive.google.com/uc?export=download&id=1vqPFd3UEuaUq7HkgsH1vjMLniYdRt9eT')
         similar_books = book_data.loc[res, [
             'name', 'author', 'description']].values
         return similar_books
@@ -25,9 +29,8 @@ class MilvusSearcher:
 
 if __name__ == '__main__':
     searcher = MilvusSearcher()
-
-    description_test = "Столкновение принципов человечности с представлениями богатых людей о том, что весь мир служит только им, становятся основой конфликта, а кража друга Арто превращает мальчика Сережу в настоящего борца за справедливость."
-    results = searcher.search_similar(description_test, n=3)
+    description_test = "Варо Борха, обладатель крупнейшей в Испании коллекции книжных редкостей, нанимает Лукаса Корсо, опытного букиниста и охотника за уникальными книгами, чтобы установить подлинность приобретенного им экземпляра книги, некогда преданной огню инквизицией вместе с ее издателем и сохранившейся лишь в трех экземплярах."
+    results = searcher.search_similar(description_test, n=5)
 
     print('Похожие книги:\n')
     for book in results:
